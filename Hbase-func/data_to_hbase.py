@@ -16,34 +16,35 @@ data_topics = ['北京', '北京大学', '喜欢', '外交', '好', '差', '爱'
 # ip = "118.190.199.189"
 ip = "47.102.205.73"
 data = {
-    'cf1:id': '',
-    'cf1:bid': '',
-    'cf1:user_id': '',
-    'cf1:user_name': '',
-    'cf1:content': '',
+    'cf1:id': json.dumps(''),
+    'cf1:bid': json.dumps(''),
+    'cf1:user_id': json.dumps(''),
+    'cf1:user_name': json.dumps(''),
+    'cf1:content': json.dumps(''),
     # 微博中头条文章的url,可能为空
-    'cf1:headline_url': '',
-    'cf1:publish_place': '',
-    'cf1:aite_user': '',
-    'cf1:topic': '',
-    'cf1:forward_num': '',
-    'cf1:comment_num': '',
-    'cf1:like_nums': '',
-    'cf1:publish_time': '',
-    'cf1:publish_tool': '',
-    'cf1:pic_urls': '[]',
-    'cf1:video_urls': '[]',
-    'cf1:retweet_id': ''
+    'cf1:headline_url': json.dumps(''),
+    'cf1:publish_place': json.dumps(''),
+    'cf1:aite_user': json.dumps(''),
+    'cf1:topic': json.dumps(''),
+    'cf1:forward_num': json.dumps(''),
+    'cf1:comment_num': json.dumps(''),
+    'cf1:like_nums': json.dumps(''),
+    'cf1:publish_time': json.dumps(''),
+    'cf1:publish_tool': json.dumps(''),
+    'cf1:pic_urls': json.dumps('[]'),
+    'cf1:video_urls': json.dumps('[]'),
+    'cf1:retweet_id': json.dumps('[]')
 }
 
 
 def get_csv_path():
-    path = "/home/hduser/workspace/weibo-search/结果文件/不/不.csv"
+    path = "/home/hduser/workspace/weibo-search/结果文件/北京/北京.csv"
     return path
 
 
 def list_to_dict(line):
     # 使用hbase数据的时候，需要取出来，然后json.loads一下
+    # id bid	user_id	用户昵称	微博正文	头条文章url	发布位置	艾特用户	话题	转发数	评论数	点赞数	发布时间	发布工具	微博图片url	微博视频url	retweet_id
     if line[0] != '':
         data['cf1:id'] = json.dumps(line[0])
     if line[1] != '':
@@ -95,36 +96,32 @@ if __name__ == '__main__':
     # }
     # table = connection.create_table('content', families)
 
-    # 1. 拿取csv的数据
+    # 2. 拿取csv的数据
     f = csv.reader(open(get_csv_path(), 'r'))
     # 跳过表头
     for line in islice(f,1,None):
         # 2. 将拿到的list转换为dict形式
         list_to_dict(line)
-        for (key,value) in data.items():
-            print("key=%s value=%s" % (key,value))
+        # 3. 插入数据,HBase存储的数据是原始的字节字符串
+        # 如果插入数据的rowkey一样会怎样？后面的更新前面的
+        # 插入数据必须是字符串
+        # 可以一次性插入多个列
         try:
-            table.put("2", data)
+            rowkey = data['cf1:id']
+            table.put(rowkey, data)
         except Exception as e:
             print("error:%s" % e)
         else:
-            print("successful wirte")
-        break
+            print("successful write hbase:id=%s" % (rowkey))
+        #     print("origin data...")
+        #     for (k,v) in data.items():
+        #         print("key=%s value=%s" % (k,v))
+        #     row = table.row(rowkey)
+        #     print("after data....")
+        #     for (key,value) in row.items():
+        #         print("key=%s value=%s" % (key,json.loads(value)))
 
-    # 如果插入数据的rowkey一样会怎样？后面的更新前面的
-    # 插入数据必须是字符串
-    # 可以一次性插入多个列
-    # try:
-    #     table.put("2", {"cf1:id": "888", "cf1:name": "hahah","cf1:url":"sdasdsad"})
-    # except Exception as e:
-    #     print("error:%s" % e)
-    # else:
-    #     print("successful wirte")
-    row = table.row("2")
-    print(row)
 
-    # 3. 把数据写入HBase表格，HBase存储的数据是原始的字节字符串
-    # id bid	user_id	用户昵称	微博正文	头条文章url	发布位置	艾特用户	话题	转发数	评论数	点赞数	发布时间	发布工具	微博图片url	微博视频url	retweet_id
     # for item in line:
     # 这里可以正确输入中文了
     # if item == '':
